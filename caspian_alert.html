@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Caspian Clean Spots</title>
+
+  <!-- Leaflet map library. This gives us a real interactive map without needing a Google Maps API key. -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIINfQnd1hQ8+g2ATfflkt+v9etHnrxF1iE="
+    crossorigin=""
+  />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    :root {
+      --blue: #0077b6;
+      --blue-dark: #005f87;
+      --cyan: #00b4d8;
+      --light: #f4fbff;
+      --text: #17324d;
+      --red: #e63946;
+      --yellow: #ffb703;
+      --green: #2a9d8f;
+      --white: #ffffff;
+    }
+
+    body {
+      background: var(--light);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      color: white;
+      padding: 54px 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 44px;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      font-size: 18px;
+      max-width: 760px;
+      margin: auto;
+    }
+
+    nav {
+      background: white;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: var(--blue);
+      font-weight: bold;
+    }
+
+    section {
+      padding: 42px 20px;
+      max-width: 1120px;
+      margin: auto;
+    }
+
+    .section-title {
+      font-size: 30px;
+      margin-bottom: 16px;
+      color: var(--blue-dark);
+    }
+
+    .muted {
+      color: #4b6478;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 5px 18px rgba(0,0,0,0.08);
+    }
+
+    .card h3 {
+      margin-bottom: 8px;
+      color: var(--blue);
+    }
+
+    .highlight-box {
+      background: white;
+      border-left: 6px solid var(--cyan);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 5px 18px rgba(0,0,0,0.08);
+      margin-top: 20px;
+    }
+
+    .awareness-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+      margin-top: 20px;
+    }
+
+    .awareness-card {
+      background: white;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 5px 18px rgba(0,0,0,0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .awareness-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+    }
+
+    .awareness-card h3 {
+      color: var(--blue-dark);
+      margin-bottom: 8px;
+    }
+
+    .quote {
+      font-size: 20px;
+      font-weight: bold;
+      color: var(--blue-dark);
+      margin-top: 12px;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .stat {
+      background: white;
+      border-radius: 18px;
+      padding: 22px;
+      text-align: center;
+      box-shadow: 0 5px 18px rgba(0,0,0,0.08);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 32px;
+      color: var(--blue);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    #realMap {
+      height: 460px;
+      width: 100%;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 3px solid #90e0ef;
+      box-shadow: 0 5px 18px rgba(0,0,0,0.08);
+      margin-top: 18px;
+      background: #dff6ff;
+    }
+
+    .map-instructions {
+      background: white;
+      padding: 12px 14px;
+      border-radius: 12px;
+      margin-top: 12px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+      font-size: 14px;
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .red { background: var(--red); }
+    .yellow { background: var(--yellow); }
+    .green { background: var(--green); }
+
+    form {
+      background: white;
+      padding: 24px;
+      border-radius: 18px;
+      box-shadow: 0 5px 18px rgba(0,0,0,0.08);
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #bdd7e7;
+      border-radius: 10px;
+      font-size: 15px;
+      background: white;
+    }
+
+    textarea {
+      min-height: 86px;
+      resize: vertical;
+    }
+
+    button {
+      background: var(--blue);
+      color: white;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--blue-dark);
+    }
+
+    .secondary-button {
+      background: #e0f7fa;
+      color: var(--blue-dark);
+      margin-top: 8px;
+    }
+
+    .secondary-button:hover {
+      background: #caf0f8;
+    }
+
+    .helper {
+      font-size: 13px;
+      color: #5d7285;
+      margin-top: 5px;
+    }
+
+    .photo-preview {
+      display: none;
+      margin-top: 10px;
+      border-radius: 14px;
+      max-height: 180px;
+      width: 100%;
+      object-fit: cover;
+      border: 1px solid #bdd7e7;
+    }
+
+    .result {
+      margin-top: 18px;
+      padding: 20px;
+      border-radius: 16px;
+      background: #e0f7fa;
+      display: none;
+      border-left: 6px solid var(--blue);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 11px;
+      border-radius: 20px;
+      color: white;
+      font-size: 13px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    .urgent { background: var(--red); }
+    .medium { background: var(--yellow); color: var(--text); }
+    .low { background: var(--green); }
+
+    .action-list {
+      margin-top: 10px;
+      padding-left: 20px;
+    }
+
+    .report-list {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .report-card {
+      background: white;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.07);
+    }
+
+    .report-card img {
+      width: 100%;
+      max-height: 170px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-top: 10px;
+      border: 1px solid #dcebf3;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .step {
+      background: white;
+      padding: 22px;
+      border-radius: 18px;
+      box-shadow: 0 5px 18px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+
+    .step-number {
+      width: 45px;
+      height: 45px;
+      background: var(--cyan);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin: 0 auto 12px;
+    }
+
+    footer {
+      background: var(--text);
+      color: white;
+      text-align: center;
+      padding: 25px;
+      margin-top: 30px;
+    }
+
+    @media (max-width: 850px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      header h1 {
+        font-size: 32px;
+      }
+
+      #realMap {
+        height: 380px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Caspian Clean Spots</h1>
+    <p>A student-led digital platform to report, map, and reduce pollution hotspots before waste reaches the Caspian Sea.</p>
+  </header>
+
+  <nav>
+    <a href="#problem">Problem</a>
+    <a href="#awareness">Awareness</a>
+    <a href="#dashboard">Impact</a>
+    <a href="#map">Map</a>
+    <a href="#report">Report</a>
+    <a href="#actions">Actions</a>
+  </nav>
+
+  <section id="problem">
+    <h2 class="section-title">Why this matters</h2>
+    <p>
+      The Caspian Sea is part of Azerbaijan’s identity, nature, tourism, and everyday life. But waste from streets, parks, beaches, drainage areas, and coastal spaces can move toward the sea. A plastic bottle or food package left on land may seem small, but when many people do the same thing, it becomes a much larger pollution problem.
+    </p>
+
+    <div class="highlight-box">
+      <p>
+        Many people care about the Caspian Sea, but they do not always know where pollution is happening or what they can do about it. Caspian Clean Spots turns the problem into something visible: students can report polluted places, see them on a real map, and help decide where awareness or cleanup action is needed first.
+      </p>
+      <p class="quote">Small reports can create a bigger picture.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Report</h3>
+        <p>Students report polluted places with a location, waste type, and optional photo.</p>
+      </div>
+      <div class="card">
+        <h3>Map</h3>
+        <p>Reports appear as colored hotspot markers: low, medium, or urgent priority.</p>
+      </div>
+      <div class="card">
+        <h3>Act</h3>
+        <p>The website suggests practical next steps, such as awareness, monitoring, or cleanup.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="awareness">
+    <h2 class="section-title">Spreading Awareness</h2>
+    <p>
+      The first goal of this prototype is not only to collect reports. It is also to help young people understand that pollution does not appear in the sea by accident. Many polluted spots begin with normal daily habits: using disposable plastic, leaving snack packaging outside, ignoring litter near drains, or assuming that someone else will clean it later.
+    </p>
+
+    <div class="awareness-grid">
+      <div class="awareness-card">
+        <h3>From street to sea</h3>
+        <p>Waste left on streets or near drains can be moved by wind, rain, or people until it reaches coastal areas and the Caspian Sea.</p>
+      </div>
+      <div class="awareness-card">
+        <h3>Wildlife impact</h3>
+        <p>Plastic and other waste can harm birds, fish, and Caspian wildlife. Even small items can become dangerous when they enter natural habitats.</p>
+      </div>
+      <div class="awareness-card">
+        <h3>Community pride</h3>
+        <p>Clean beaches, parks, and seaside spaces make the community healthier, more beautiful, and more welcoming for families and visitors.</p>
+      </div>
+      <div class="awareness-card">
+        <h3>Student action</h3>
+        <p>Students may not be able to solve the whole problem alone, but they can help make pollution visible and encourage others to act.</p>
+      </div>
+    </div>
+
+    <div class="highlight-box">
+      <h3>Awareness message for the campaign</h3>
+      <p>
+        “If we can see the problem, we can start solving it. By reporting polluted places, students help protect the Caspian Sea one clean spot at a time.”
+      </p>
+    </div>
+  </section>
+
+  <section id="dashboard">
+    <h2 class="section-title">Impact Dashboard</h2>
+    <p class="muted">This dashboard updates when new reports are submitted in the prototype.</p>
+
+    <div class="dashboard">
+      <div class="stat">
+        <strong id="totalReports">4</strong>
+        <span>Total reports</span>
+      </div>
+      <div class="stat">
+        <strong id="urgentReports">2</strong>
+        <span>Urgent hotspots</span>
+      </div>
+      <div class="stat">
+        <strong id="plasticReports">2</strong>
+        <span>Plastic reports</span>
+      </div>
+      <div class="stat">
+        <strong id="studentActions">3</strong>
+        <span>Suggested actions</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="map">
+    <h2 class="section-title">Real Pollution Hotspot Map</h2>
+    <p>
+      This prototype now uses an interactive OpenStreetMap map. Click on the map to choose the location of a pollution report. Existing markers show example hotspots around the Baku coastline.
+    </p>
+
+    <div class="layout">
+      <div>
+        <div id="realMap"></div>
+        <div class="map-instructions">
+          Click anywhere on the map to choose a report location. Then complete the form below and submit it.
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="dot green"></span> Low</span>
+          <span class="legend-item"><span class="dot yellow"></span> Medium</span>
+          <span class="legend-item"><span class="dot red"></span> Urgent</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>How priority is calculated</h3>
+        <p>The score is based on:</p>
+        <ul class="action-list">
+          <li>amount of waste</li>
+          <li>whether it is close to sea, drain, or water flow</li>
+          <li>whether the place is repeatedly polluted</li>
+          <li>waste type, especially plastic or mixed waste</li>
+        </ul>
+        <p class="helper">The goal is not perfect science. The goal is to help students decide which places need attention first.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="report">
+    <h2 class="section-title">Report a Pollution Spot</h2>
+    <p>Try the improved prototype form below. It previews the photo, calculates a priority score, gives clear reasons, suggests actions, and adds a new marker to the map.</p>
+
+    <form id="reportForm">
+      <div>
+        <label for="place">Location name</label>
+        <input type="text" id="place" placeholder="Example: Baku Boulevard, beach area, local park" required />
+        <p class="helper" id="selectedLocationText">No map location selected yet. Click on the map first, or submit without a selected point to place it near Baku.</p>
+      </div>
+
+      <div>
+        <label for="photo">Photo evidence</label>
+        <input type="file" id="photo" accept="image/*" />
+        <img id="photoPreview" class="photo-preview" alt="Uploaded pollution preview" />
+        <p class="helper">Prototype note: the photo appears only in your browser.</p>
+      </div>
+
+      <div>
+        <label for="wasteType">Main type of waste</label>
+        <select id="wasteType" required>
+          <option value="">Choose one</option>
+          <option value="plastic">Plastic bottles / bags</option>
+          <option value="food">Food packaging</option>
+          <option value="glass">Glass / cans</option>
+          <option value="fishing">Fishing waste</option>
+          <option value="mixed">Mixed waste</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="amount">How much waste is there?</label>
+        <select id="amount" required>
+          <option value="">Choose one</option>
+          <option value="1">Small amount</option>
+          <option value="2">Medium amount</option>
+          <option value="3">Large amount</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="nearWater">Is it near the sea, drain, canal, or water flow?</label>
+        <select id="nearWater" required>
+          <option value="">Choose one</option>
+          <option value="3">Yes</option>
+          <option value="0">No</option>
+          <option value="1">Not sure</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="repeat">Have you seen waste there more than once?</label>
+        <select id="repeat" required>
+          <option value="">Choose one</option>
+          <option value="3">Yes</option>
+          <option value="0">No</option>
+          <option value="1">Not sure</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="notes">Notes</label>
+        <textarea id="notes" placeholder="Example: mostly plastic bottles after weekends"></textarea>
+      </div>
+
+      <button type="submit">Submit Report and Add to Map</button>
+      <button type="button" class="secondary-button" id="resetDemo">Reset Demo Data</button>
+    </form>
+
+    <div id="result" class="result"></div>
+  </section>
+
+  <section id="actions">
+    <h2 class="section-title">Submitted Reports and Action Plans</h2>
+    <p class="muted">New reports appear here with suggested next steps.</p>
+    <div id="reportList" class="report-list"></div>
+  </section>
+
+  <section>
+    <h2 class="section-title">How students use it</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>Notice</h3>
+        <p>A student sees pollution near the coast, park, street, or drainage area.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>Report</h3>
+        <p>They submit the location, type of waste, photo, and pollution level.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>Map</h3>
+        <p>The platform shows whether the place is low, medium, or urgent priority.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">4</div>
+        <h3>Act</h3>
+        <p>Students choose a hotspot and organize awareness, monitoring, or cleanup.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Caspian Clean Spots — A student prototype for cleaner communities and a cleaner Caspian Sea.</p>
+  </footer>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <script>
+    const form = document.getElementById('reportForm');
+    const result = document.getElementById('result');
+    const selectedLocationText = document.getElementById('selectedLocationText');
+    const photoInput = document.getElementById('photo');
+    const photoPreview = document.getElementById('photoPreview');
+    const reportList = document.getElementById('reportList');
+    const resetDemo = document.getElementById('resetDemo');
+
+    const totalReports = document.getElementById('totalReports');
+    const urgentReports = document.getElementById('urgentReports');
+    const plasticReports = document.getElementById('plasticReports');
+    const studentActions = document.getElementById('studentActions');
+
+    let selectedLatLng = null;
+    let draftMarker = null;
+    let map = null;
+
+    const markerColors = {
+      red: '#e63946',
+      yellow: '#ffb703',
+      green: '#2a9d8f'
+    };
+
+    function makeIcon(color) {
+      return L.divIcon({
+        className: '',
+        html: `<div style="width:24px;height:24px;border-radius:50%;background:${markerColors[color]};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.35);"></div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+        popupAnchor: [0, -12]
+      });
+    }
+
+    let reports = [
+      {
+        place: 'Baku Boulevard seaside walkway',
+        wasteType: 'plastic',
+        level: 'Urgent hotspot',
+        score: 9,
+        reasons: ['large amount of waste', 'plastic waste', 'close to water'],
+        actions: ['Organize a small cleanup', 'Start a reusable bottle campaign', 'Report again next week'],
+        photo: '',
+        notes: 'Plastic bottles and bags are often left after weekends.',
+        color: 'red',
+        latLng: [40.3668, 49.8500]
+      },
+      {
+        place: 'Park near the coast',
+        wasteType: 'food',
+        level: 'Medium priority',
+        score: 5,
+        reasons: ['medium amount of waste', 'food packaging'],
+        actions: ['Create posters near the park', 'Ask students to use bins', 'Monitor for one week'],
+        photo: '',
+        notes: 'Mostly snack packaging.',
+        color: 'yellow',
+        latLng: [40.3738, 49.8352]
+      },
+      {
+        place: 'Residential street near water flow',
+        wasteType: 'other',
+        level: 'Low priority',
+        score: 3,
+        reasons: ['small amount of waste'],
+        actions: ['Keep monitoring', 'Share a reminder with residents'],
+        photo: '',
+        notes: 'Small litter near the road.',
+        color: 'green',
+        latLng: [40.3820, 49.8710]
+      },
+      {
+        place: 'Drainage area near coastline',
+        wasteType: 'mixed',
+        level: 'Urgent hotspot',
+        score: 10,
+        reasons: ['repeated pollution spot', 'mixed waste', 'close to water'],
+        actions: ['Share this hotspot with a teacher or youth group', 'Plan a safe cleanup', 'Monitor after rain'],
+        photo: '',
+        notes: 'Waste appears again after windy days.',
+        color: 'red',
+        latLng: [40.3502, 49.8136]
+      }
+    ];
+
+    function initMap() {
+      map = L.map('realMap').setView([40.3668, 49.8500], 12);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      reports.forEach(addMarker);
+
+      map.on('click', function(event) {
+        selectedLatLng = event.latlng;
+        selectedLocationText.textContent = `Map location selected: ${event.latlng.lat.toFixed(5)}, ${event.latlng.lng.toFixed(5)}`;
+
+        if (draftMarker) {
+          map.removeLayer(draftMarker);
+        }
+
+        draftMarker = L.marker(event.latlng, { icon: makeIcon('yellow') })
+          .addTo(map)
+          .bindPopup('<strong>Selected location</strong><br>Submit the form to add this hotspot.')
+          .openPopup();
+      });
+    }
+
+    function getWasteLabel(value) {
+      const labels = {
+        plastic: 'Plastic bottles / bags',
+        food: 'Food packaging',
+        glass: 'Glass / cans',
+        fishing: 'Fishing waste',
+        mixed: 'Mixed waste',
+        other: 'Other'
+      };
+      return labels[value] || 'Other';
+    }
+
+    function calculateScore(wasteType, amount, nearWater, repeat) {
+      let score = amount + nearWater + repeat;
+      const reasons = [];
+
+      if (amount === 3) reasons.push('large amount of waste');
+      if (amount === 2) reasons.push('medium amount of waste');
+      if (amount === 1) reasons.push('small amount of waste');
+      if (nearWater === 3) reasons.push('close to sea, drain, canal, or water flow');
+      if (nearWater === 1) reasons.push('possibly close to water flow');
+      if (repeat === 3) reasons.push('repeated pollution spot');
+      if (repeat === 1) reasons.push('may be a repeated pollution spot');
+
+      if (wasteType === 'plastic') {
+        score += 2;
+        reasons.push('plastic waste can easily reach the sea');
+      }
+      if (wasteType === 'mixed') {
+        score += 2;
+        reasons.push('mixed waste is harder to manage');
+      }
+      if (wasteType === 'glass') {
+        score += 1;
+        reasons.push('glass or cans may be unsafe in public spaces');
+      }
+      if (wasteType === 'fishing') {
+        score += 2;
+        reasons.push('fishing waste can harm wildlife');
+      }
+
+      let level = '';
+      let color = '';
+      if (score >= 8) {
+        level = 'Urgent hotspot';
+        color = 'red';
+      } else if (score >= 5) {
+        level = 'Medium priority';
+        color = 'yellow';
+      } else {
+        level = 'Low priority';
+        color = 'green';
+      }
+
+      return { score, reasons, level, color };
+    }
+
+    function getActions(level, wasteType) {
+      const actions = [];
+
+      if (level === 'Urgent hotspot') {
+        actions.push('Share this hotspot with a teacher or youth group');
+        actions.push('Plan a small cleanup with safety rules');
+        actions.push('Check the same place again next week');
+      } else if (level === 'Medium priority') {
+        actions.push('Monitor the place for one week');
+        actions.push('Create an awareness poster or class message');
+      } else {
+        actions.push('Keep monitoring the area');
+        actions.push('Share a simple reminder about not littering');
+      }
+
+      if (wasteType === 'plastic') actions.push('Encourage reusable bottles and bags');
+      if (wasteType === 'food') actions.push('Promote responsible disposal of snack packaging');
+      if (wasteType === 'fishing') actions.push('Ask an environmental expert before touching dangerous waste');
+      if (wasteType === 'glass') actions.push('Do not collect sharp items without adult support');
+
+      return actions;
+    }
+
+    function updateDashboard() {
+      const urgent = reports.filter(report => report.level === 'Urgent hotspot').length;
+      const plastic = reports.filter(report => report.wasteType === 'plastic').length;
+      const actionCount = new Set(reports.flatMap(report => report.actions)).size;
+
+      totalReports.textContent = reports.length;
+      urgentReports.textContent = urgent;
+      plasticReports.textContent = plastic;
+      studentActions.textContent = actionCount;
+    }
+
+    function renderReports() {
+      reportList.innerHTML = '';
+
+      reports.slice().reverse().forEach(report => {
+        const badgeClass = report.level === 'Urgent hotspot' ? 'urgent' : report.level === 'Medium priority' ? 'medium' : 'low';
+        const photoHtml = report.photo ? `<img src="${report.photo}" alt="Photo evidence for ${report.place}">` : '';
+
+        const card = document.createElement('div');
+        card.className = 'report-card';
+        card.innerHTML = `
+          <span class="badge ${badgeClass}">${report.level}</span>
+          <h3>${report.place}</h3>
+          <p><strong>Score:</strong> ${report.score} / 11</p>
+          <p><strong>Main waste:</strong> ${getWasteLabel(report.wasteType)}</p>
+          <p><strong>Why:</strong> ${report.reasons.join(', ')}</p>
+          ${report.latLng ? `<p><strong>Map location:</strong> ${report.latLng[0].toFixed(5)}, ${report.latLng[1].toFixed(5)}</p>` : ''}
+          ${report.notes ? `<p><strong>Notes:</strong> ${report.notes}</p>` : ''}
+          <p><strong>Suggested actions:</strong></p>
+          <ul class="action-list">
+            ${report.actions.map(action => `<li>${action}</li>`).join('')}
+          </ul>
+          ${photoHtml}
+        `;
+        reportList.appendChild(card);
+      });
+    }
+
+    function addMarker(report) {
+      if (!map || !report.latLng) return;
+
+      L.marker(report.latLng, { icon: makeIcon(report.color) })
+        .addTo(map)
+        .bindPopup(`
+          <strong>${report.level}</strong><br>
+          ${report.place}<br>
+          Waste: ${getWasteLabel(report.wasteType)}<br>
+          Score: ${report.score}/11
+        `);
+    }
+
+    photoInput.addEventListener('change', function() {
+      const file = photoInput.files[0];
+      if (!file) {
+        photoPreview.style.display = 'none';
+        photoPreview.src = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        photoPreview.src = event.target.result;
+        photoPreview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    form.addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      const place = document.getElementById('place').value.trim();
+      const wasteType = document.getElementById('wasteType').value;
+      const amount = Number(document.getElementById('amount').value);
+      const nearWater = Number(document.getElementById('nearWater').value);
+      const repeat = Number(document.getElementById('repeat').value);
+      const notes = document.getElementById('notes').value.trim();
+      const photo = photoPreview.src || '';
+
+      const calculation = calculateScore(wasteType, amount, nearWater, repeat);
+      const actions = getActions(calculation.level, wasteType);
+      const fallbackLatLng = [40.3668 + (Math.random() - 0.5) * 0.05, 49.8500 + (Math.random() - 0.5) * 0.07];
+      const latLng = selectedLatLng ? [selectedLatLng.lat, selectedLatLng.lng] : fallbackLatLng;
+
+      const report = {
+        place,
+        wasteType,
+        level: calculation.level,
+        score: calculation.score,
+        reasons: calculation.reasons,
+        actions,
+        photo,
+        notes,
+        color: calculation.color,
+        latLng
+      };
+
+      reports.push(report);
+      addMarker(report);
+      renderReports();
+      updateDashboard();
+
+      if (draftMarker) {
+        map.removeLayer(draftMarker);
+        draftMarker = null;
+      }
+
+      const badgeClass = report.level === 'Urgent hotspot' ? 'urgent' : report.level === 'Medium priority' ? 'medium' : 'low';
+      result.style.display = 'block';
+      result.innerHTML = `
+        <span class="badge ${badgeClass}">${report.level}</span>
+        <h3>Report submitted for: ${place}</h3>
+        <p><strong>Priority score:</strong> ${report.score} / 11</p>
+        <p><strong>Reason:</strong> ${report.reasons.join(', ')}</p>
+        <p><strong>Recommended next step:</strong> ${report.actions[0]}</p>
+        <p><em>Your report has been added to the interactive hotspot map and impact dashboard.</em></p>
+      `;
+
+      form.reset();
+      photoPreview.style.display = 'none';
+      photoPreview.src = '';
+      selectedLatLng = null;
+      selectedLocationText.textContent = 'No map location selected yet. Click on the map first, or submit without a selected point to place it near Baku.';
+    });
+
+    resetDemo.addEventListener('click', function() {
+      location.reload();
+    });
+
+    initMap();
+    renderReports();
+    updateDashboard();
+  </script>
+</body>
+</html>
